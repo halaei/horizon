@@ -13,6 +13,8 @@ class BackgroundProcess extends Process
      */
     public function __destruct()
     {
-        //
+        if ($pid = $this->getPid()) {
+            posix_kill($pid, SIGTERM);
+        }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Laravel\Horizon\MasterSupervisorCommands;
 
+use Laravel\Horizon\BackgroundProcess;
 use Laravel\Horizon\MasterSupervisor;
 use Laravel\Horizon\SupervisorOptions;
 use Laravel\Horizon\SupervisorProcess;
@@ -38,7 +39,7 @@ class AddSupervisor
     {
         $command = $options->toSupervisorCommand();
 
-        return (new Process($command, $options->directory ?? base_path()))
+        return (new BackgroundProcess($command, $options->directory ?? base_path()))
                     ->setTimeout(null)
                     ->disableOutput();
     }
