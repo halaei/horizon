@@ -49,7 +49,7 @@ class SupervisorTest extends IntegrationTest
                 usleep(250 * 1000);
             }
         }
-        dump(new Exec())->run('pgrep -f [p]hpunit');
+        dump((new Exec())->run('pgrep -f [p]hpunit'));
 
         parent::tearDown();
     }
