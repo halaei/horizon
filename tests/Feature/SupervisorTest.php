@@ -2,6 +2,7 @@
 
 namespace Laravel\Horizon\Tests\Feature;
 
+use Laravel\Horizon\Exec;
 use Mockery;
 use Cake\Chronos\Chronos;
 use Laravel\Horizon\PhpBinary;
@@ -25,6 +26,10 @@ use Laravel\Horizon\Events\WorkerProcessRestarting;
 class SupervisorTest extends IntegrationTest
 {
     public $phpBinary;
+
+    /**
+     * @var Supervisor
+     */
     public $supervisor;
 
     public function setUp()
@@ -44,6 +49,7 @@ class SupervisorTest extends IntegrationTest
                 usleep(250 * 1000);
             }
         }
+        dump(new Exec())->run('pgrep -f [p]hpunit');
 
         parent::tearDown();
     }
