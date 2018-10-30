@@ -295,8 +295,10 @@ class SupervisorTest extends IntegrationTest
         $process->terminate();
         usleep(500 * 1000);
 
-        retry(10, function () use ($process) {
-            $this->assertFalse(true);
+        $n = 0;
+        retry(10, function () use ($process, &$n) {
+            $n++;
+            $this->assertFalse($n < 2);
         }, 1000);
     }
 
