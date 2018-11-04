@@ -57,6 +57,7 @@ class RedisQueue extends BaseQueue
     public function pushRaw($payload, $queue = null, array $options = [])
     {
         $payload = (new JobPayload($payload))->prepare($this->lastPushed)->value;
+        $this->lastPushed = null;
 
         return tap(parent::pushRaw($payload, $queue, $options), function () use ($queue, $payload) {
             $this->event($this->getQueue($queue), new JobPushed($payload));
