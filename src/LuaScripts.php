@@ -34,4 +34,13 @@ class LuaScripts
             redis.call('hmset', KEYS[1], 'throughput', throughput, 'runtime', runtime)
 LUA;
     }
+
+    public static function incrementMetrics()
+    {
+        return <<<'LUA'
+            redis.call('hincr', KEYS[1], ARGV[1])
+            redis.call('hincrbyfloat', KYES[1], ARGV[2], ARGV[3])
+            redis.call('expire', KEYS[1], ARGV[4])
+LUA;
+    }
 }
