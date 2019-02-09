@@ -39,7 +39,7 @@ LUA;
     {
         return <<<'LUA'
             redis.call('hincr', KEYS[1], ARGV[1])
-            redis.call('hincrbyfloat', KYES[1], ARGV[2], ARGV[3])
+            redis.call('hincrby', KYES[1], ARGV[2], ARGV[3])
             redis.call('expire', KEYS[1], ARGV[4])
 LUA;
     }

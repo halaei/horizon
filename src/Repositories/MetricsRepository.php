@@ -2,7 +2,6 @@
 
 namespace Laravel\Horizon\Repositories;
 
-
 use Carbon\Carbon;
 use Illuminate\Contracts\Redis\Factory;
 use Laravel\Horizon\Lock;
@@ -30,6 +29,13 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
      * @var array|null
      */
     protected $measuredQueues;
+
+    /**
+     * Minutes to remember metrics.
+     *
+     * @var int
+     */
+    protected $rememberFor = 1440;
 
     /**
      * Create a new repository instance.
@@ -88,7 +94,7 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
             if (is_null($for)) {
                 $items = $this->connection()->hgetall($key);
             } else {
-                $items = $this->connection()->hmget($key, ["$for:t", "$for:r"]);
+                $items = $this->connection()->hmget($key, ["t:$for", "r:$for"]);
             }
             collect($items)->each(function ($v, $k) use (&$metrics) {
                 switch ($k[0]) {
@@ -104,7 +110,7 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
 
         return [
             round($metrics[0] / $seconds / 60),
-            $metrics[0] ? round($metrics[1] / $metrics[0]) : 0
+            $metrics[0] ? round($metrics[1] / $metrics[0] / 1000000) : 0
         ];
     }
 
@@ -172,6 +178,14 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
         return $this->metricsPerMinute('q', $queue)[1];
     }
 
+    protected function queueWithMaximux($metric)
+    {
+        $key = 'metrics:q:'.(intdiv(Carbon::now()->subMinute()->timestamp, 60));
+        return collect($this->connection()->hgetall($key))->filter(function ($val, $key) use (&$metric) {
+            return $key[0] === $metric;
+        })->sort()->last();
+    }
+
     /**
      * Get the queue that has the longest runtime.
      *
@@ -179,7 +193,7 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
      */
     public function queueWithMaximumRuntime()
     {
-        // TODO: Implement queueWithMaximumRuntime() method.
+        return $this->queueWithMaximux('r');
     }
 
     /**
@@ -189,7 +203,7 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
      */
     public function queueWithMaximumThroughput()
     {
-        // TODO: Implement queueWithMaximumThroughput() method.
+        return $this->queueWithMaximux('t');
     }
 
     /**
@@ -206,7 +220,7 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
         }
         $this->connection()->eval(LuaScripts::incrementMetrics(), 1,
             'measures:j:'.intdiv(Carbon::now()->timestamp, 60),
-            $job.':t', $job.':r', str_replace(',', '.', $runtime), 3600 * 24);
+            't:'.$job, 'r:'.$job, $runtime * 1000000, $this->rememberFor * 60);
     }
 
     /**
@@ -223,7 +237,23 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
         }
         $this->connection()->eval(LuaScripts::incrementMetrics(), 1,
             'measures:q:'.intdiv(Carbon::now()->timestamp, 60),
-            $queue.':t', $queue.':r', str_replace(',', '.', $runtime), 3600 * 24);
+            't:'.$queue, 'r:'.$queue, $runtime * 1000000, 3600 * 24);
+    }
+
+    /**
+     * Get all of the snapshots for the given key.
+     *
+     * @param  string  $key
+     * @return array
+     */
+    protected function snapshotsFor($key)
+    {
+        $this->snapshot();
+
+        return collect($this->connection()->zrange('snapshot:'.$key, 0, -1, ['WITHSCORES']))
+            ->map(function ($snapshot) {
+                return (object) json_decode($snapshot, true);
+            })->values()->all();
     }
 
     /**
@@ -234,7 +264,7 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
      */
     public function snapshotsForJob($job)
     {
-        // TODO: Implement snapshotsForJob() method.
+        return $this->snapshotsFor('job:'.$job);
     }
 
     /**
@@ -245,7 +275,7 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
      */
     public function snapshotsForQueue($queue)
     {
-        // TODO: Implement snapshotsForQueue() method.
+        return $this->snapshotsFor('queue:'.$queue);
     }
 
     /**
@@ -255,7 +285,34 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
      */
     public function snapshot()
     {
-        // TODO: Implement snapshot() method.
+        $lastSnapshot = $this->connection()->get('last_snapshot') ?? intdiv(Carbon::now()->subMinute($this->rememberFor)->timestamp, 60);
+        $now = intdiv(Carbon::now()->timestamp, 60);
+        for ($time = $lastSnapshot + 1; $time < $now; $time++) {
+            $this->storeSnapshot($time, 'metrics:q:'.$time, 'queue:');
+            $this->storeSnapshot($time, 'metrics:j:'.$time, 'job:');
+        }
+        $this->connection()->set('last_snapshot', $now - 1);
+    }
+
+    protected function storeSnapshot($time, $metrics, $prefix)
+    {
+        $items = $this->connection()->hgetall($metrics);
+        $snapshots = [];
+        foreach ($items as $key => $value) {
+            preg_match('/^(.):(.*)$/', $key, $parts);
+            $snapshots[$parts[2]][$parts[1] === 'r' ? 'runtime' : 'throughput'] = $value;
+        }
+        $this->connection()->pipeline(function ($pipe) use ($snapshots, $time, $prefix) {
+            foreach ($snapshots as $key => $value) {
+                $pipe->zadd(
+                    'snapshot:'.$prefix.$key, ($time + 1) * 60, json_encode([
+                        'throughput' => $value['throughput'],
+                        'runtime' => $value['runtime'] ? $value['runtime'] / $value['throughput'] / 1000000 : 0,
+                        'time' => ($time + 1) * 60,
+                    ])
+                );
+            }
+        });
     }
 
     /**
@@ -276,7 +333,7 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
      */
     public function forget($key)
     {
-        // TODO: Implement forget() method.
+        $this->connection()->del($key);
     }
 
     /**
