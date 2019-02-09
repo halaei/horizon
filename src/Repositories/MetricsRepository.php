@@ -311,6 +311,9 @@ class MetricsRepository implements \Laravel\Horizon\Contracts\MetricsRepository
                         'time' => ($time + 1) * 60,
                     ])
                 );
+                $this->connection()->zremrangebyrank(
+                    'snapshot:'.$key, 0, -$this->rememberFor
+                );
             }
         });
     }
