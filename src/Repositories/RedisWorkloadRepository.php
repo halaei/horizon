@@ -75,10 +75,16 @@ class RedisWorkloadRepository implements WorkloadRepository
                     : collect(explode(',', $queueName))->sum(function ($queueName) use ($connection) {
                         return $this->queue->connection($connection)->readyNow($queueName);
                     });
+                $reserved = ! Str::contains($queue, ',')
+                    ? $this->queue->connection($connection)->reservedNow($queueName)
+                    : collect(explode(',', $queueName))->sum(function ($queueName) use ($connection) {
+                        return $this->queue->connection($connection)->reservedNow($queueName);
+                    });
 
                 return [
                     'name' => $queueName,
                     'length' => $length,
+                    'reserved' => $reserved,
                     'wait' => $waitTime,
                     'processes' => $processes[$queue] ?? 0,
                 ];

@@ -271,7 +271,7 @@
                 <tr>
                     <th>Queue</th>
                     <th>Processes</th>
-                    <th>Jobs</th>
+                    <th>Reserved/Waiting Jobs</th>
                     <th class="text-right">Wait</th>
                 </tr>
                 </thead>
@@ -282,7 +282,7 @@
                         <span>{{ queue.name.replace(/,/g, ', ') }}</span>
                     </td>
                     <td>{{ queue.processes ? queue.processes.toLocaleString() : 0 }}</td>
-                    <td>{{ queue.length ? queue.length.toLocaleString() : 0 }}</td>
+                    <td>{{ queue.reserved ? queue.reserved.toLocaleString() : 0 }}/{{ queue.length ? queue.length.toLocaleString() : 0 }}</td>
                     <td class="text-right">{{ humanTime(queue.wait) }}</td>
                 </tr>
                 </tbody>

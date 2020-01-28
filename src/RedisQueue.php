@@ -32,6 +32,17 @@ class RedisQueue extends BaseQueue
     }
 
     /**
+     * Get the number of queue jobs that are processing.
+     *
+     * @param string|null $queue
+     * @return int
+     */
+    public function reservedNow($queue = null)
+    {
+        return $this->getConnection()->zcard($this->getQueue($queue).':reserved');
+    }
+
+    /**
      * Push a new job onto the queue.
      *
      * @param  object|string  $job
