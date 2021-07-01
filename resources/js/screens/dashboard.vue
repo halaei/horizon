@@ -297,7 +297,7 @@
                             </td>
                             <td :class="{'font-weight-bold': queue.split_queues}">{{ queue.processes ? queue.processes.toLocaleString() : 0 }}</td>
                             <td :class="{'font-weight-bold': queue.split_queues}">{{ queue.length ? queue.length.toLocaleString() : 0 }}</td>
-                            <td :class="{'font-weight-bold': queue.split_queues}">{{ (maxJobs.get(queue.length) || 0).toLocaleString() }}</td>
+                            <td :class="{'font-weight-bold': queue.split_queues}">{{ (maxJobs.get(queue.name) || 0).toLocaleString() }}</td>
                             <td :class="{'font-weight-bold': queue.split_queues}" class="text-right">{{ humanTime(queue.wait) }}</td>
                         </tr>
 
