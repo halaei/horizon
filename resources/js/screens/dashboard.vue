@@ -15,6 +15,7 @@
                 workers: [],
                 workload: [],
                 ready: false,
+                maxJobs : new Map(),
             };
         },
 
@@ -86,6 +87,14 @@
                     });
             },
 
+            /**
+             * Set the maximum number of jobs per queue.
+             */
+            setMaxJobs() {
+                this.workload.forEach(queue => {
+                    this.maxJobs.set(queue.name, Math.max(this.maxJobs.get(queue.name) || 0, queue.length));
+                })
+            },
 
             /**
              * Load the workload stats.
@@ -94,6 +103,7 @@
                 return this.$http.get(Horizon.basePath + '/api/workload')
                     .then(response => {
                         this.workload = response.data;
+                        this.setMaxJobs();
                     });
             },
 
@@ -274,6 +284,7 @@
                     <th>Queue</th>
                     <th>Processes</th>
                     <th>Jobs</th>
+                    <th>Max Jobs</th>
                     <th class="text-right">Wait</th>
                 </tr>
                 </thead>
@@ -286,6 +297,7 @@
                             </td>
                             <td :class="{'font-weight-bold': queue.split_queues}">{{ queue.processes ? queue.processes.toLocaleString() : 0 }}</td>
                             <td :class="{'font-weight-bold': queue.split_queues}">{{ queue.length ? queue.length.toLocaleString() : 0 }}</td>
+                            <td :class="{'font-weight-bold': queue.split_queues}">{{ (maxJobs.get(queue.length) || 0).toLocaleString() }}</td>
                             <td :class="{'font-weight-bold': queue.split_queues}" class="text-right">{{ humanTime(queue.wait) }}</td>
                         </tr>
 
