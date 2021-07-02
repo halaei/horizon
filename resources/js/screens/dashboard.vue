@@ -16,6 +16,7 @@
                 workload: [],
                 ready: false,
                 maxJobs : new Map(),
+                maxWait: new Map(),
             };
         },
 
@@ -90,9 +91,10 @@
             /**
              * Set the maximum number of jobs per queue.
              */
-            setMaxJobs() {
+            aggregateWorkload() {
                 this.workload.forEach(queue => {
                     this.maxJobs.set(queue.name, Math.max(this.maxJobs.get(queue.name) || 0, queue.length));
+                    this.maxWait.set(queue.name, Math.max(this.maxWait.get(queue.name) || 0, queue.wait));
                 })
             },
 
@@ -103,7 +105,7 @@
                 return this.$http.get(Horizon.basePath + '/api/workload')
                     .then(response => {
                         this.workload = response.data;
-                        this.setMaxJobs();
+                        this.aggregateWorkload();
                     });
             },
 
@@ -147,9 +149,19 @@
              * @returns {string}
              */
             humanTime(time) {
-                return moment.duration(time, "seconds").humanize().replace(/^(.)|\s+(.)/g, function ($1) {
-                    return $1.toUpperCase();
-                });
+                if (time < 0.001) {
+                    return '0';
+                }
+                if (time < 1) {
+                    return (time * 1000).toFixed(0) + ' ms';
+                }
+                if (time < 10) {
+                    return time.toPrecision(3)+' s';
+                }
+                if (time < 60) {
+                    return time.toFixed(0)+ ' s';
+                }
+                return (time % 60).toFixed(0)+'m:'+(time / 60).toFixed(0)+'s';
             },
 
 
@@ -285,7 +297,8 @@
                     <th>Processes</th>
                     <th>Jobs</th>
                     <th>Max Jobs</th>
-                    <th class="text-right">Wait</th>
+                    <th>Wait</th>
+                    <th>Max Wait</th>
                 </tr>
                 </thead>
 
@@ -299,6 +312,7 @@
                             <td :class="{'font-weight-bold': queue.split_queues}">{{ queue.length ? queue.length.toLocaleString() : 0 }}</td>
                             <td :class="{'font-weight-bold': queue.split_queues}">{{ (maxJobs.get(queue.name) || 0).toLocaleString() }}</td>
                             <td :class="{'font-weight-bold': queue.split_queues}" class="text-right">{{ humanTime(queue.wait) }}</td>
+                            <td :class="{'font-weight-bold': queue.split_queues}" class="text-right">{{ humanTime(maxWait.get(queue.name) || 0) }}</td>
                         </tr>
 
                         <tr v-for="split_queue in queue.split_queues">

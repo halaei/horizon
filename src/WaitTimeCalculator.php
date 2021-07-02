@@ -126,8 +126,8 @@ class WaitTimeCalculator
             });
 
         return $totalProcesses === 0
-            ? round($timeToClear / 1000)
-            : round(($timeToClear / $totalProcesses) / 1000);
+            ? round($timeToClear / 1000, 3)
+            : round(($timeToClear / $totalProcesses) / 1000, 3);
     }
 
     /**
