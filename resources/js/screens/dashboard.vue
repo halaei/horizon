@@ -153,15 +153,15 @@
                     return '0';
                 }
                 if (time < 1) {
-                    return (time * 1000).toFixed(0) + ' ms';
+                    return (time * 1000).toFixed(0) + 'ms';
                 }
                 if (time < 10) {
-                    return time.toPrecision(3)+' s';
+                    return time.toPrecision(3)+'s';
                 }
                 if (time < 60) {
-                    return time.toFixed(0)+ ' s';
+                    return time.toFixed(0)+ 's';
                 }
-                return (time % 60).toFixed(0)+'m:'+(time / 60).toFixed(0)+'s';
+                return (time / 60).toFixed(0)+'m:'+(time % 60).toFixed(0)+'s';
             },
 
 
