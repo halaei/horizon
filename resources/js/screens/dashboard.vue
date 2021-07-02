@@ -161,7 +161,7 @@
                 if (time < 60) {
                     return time.toFixed(0)+ 's';
                 }
-                return (time / 60).toFixed(0)+'m:'+(time % 60).toFixed(0)+'s';
+                return Math.floor(time / 60).toFixed(0)+'m:'+(time % 60).toFixed(0)+'s';
             },
 
 
